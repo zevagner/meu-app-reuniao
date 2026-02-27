@@ -11,15 +11,15 @@ if api_key:
     try:
         genai.configure(api_key=api_key)
         
-        # Superprompt integrado conforme solicitado
+        # Superprompt integrado com as suas necessidades
         SYSTEM_PROMPT = """
         Você é um Especialista em Gestão de Reuniões. 
         Analise o áudio e use o Método SPIN Selling para avaliar vendas.
-        Gere um resumo, Action Items (Kanban) e mantenha o contexto histórico.
+        Gere um resumo, Action Items (Kanban) e destaque pontos recorrentes.
         Identifique oradores e sentimentos.
         """
 
-        st.write("Clique para gravar. Clique novamente para encerrar e analisar.")
+        st.write("Clique para gravar. Clique novamente para parar e analisar.")
         
         audio = mic_recorder(
             start_prompt="🔴 Iniciar Gravação",
@@ -30,30 +30,26 @@ if api_key:
         if audio:
             st.audio(audio['bytes'])
             with st.spinner("O Gemini está analisando a reunião..."):
-                # Ajustamos para gemini-1.5-flash que é mais rápido e estável para áudio simples
+                # Usando a nomenclatura mais estável para evitar o erro 404
                 model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=SYSTEM_PROMPT)
                 
-                # Mudança na forma de envio para garantir compatibilidade
-                contents = [
-                    {
-                        "parts": [
-                            {"mime_type": "audio/wav", "data": audio['bytes']},
-                            {"text": "Por favor, analise esta reunião conforme suas instruções de sistema."}
-                        ]
-                    }
-                ]
-                
-                response = model.generate_content(contents)
+                # Envio simplificado de áudio
+                response = model.generate_content([
+                    "Por favor, analise este áudio seguindo as instruções de sistema.",
+                    {"mime_type": "audio/wav", "data": audio['bytes']}
+                ])
                 
                 st.success("Análise Concluída!")
                 st.markdown(response.text)
                 
                 st.divider()
                 if st.button("📲 Compartilhar no WhatsApp"):
-                    texto_curto = response.text[:300].replace('\n', ' ')
-                    st.write(f"[Enviar para WhatsApp](https://wa.me/?text={texto_curto})")
+                    # Prepara um resumo curto para o link do WhatsApp
+                    texto_resumo = response.text[:200].replace('\n', ' ')
+                    st.write(f"[Enviar Resumo para WhatsApp](https://wa.me/?text={texto_resumo})")
                     
     except Exception as e:
-        st.error(f"Ocorreu um erro: {e}")
+        st.error(f"Erro ao processar: {e}")
+        st.info("Dica: Verifique se sua chave API está correta e se o modelo gemini-1.5-flash está habilitado no seu painel.")
 else:
     st.warning("Por favor, insira sua API Key na barra lateral.")
